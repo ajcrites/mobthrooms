@@ -1,13 +1,44 @@
-.occupied, .not-occupied, .displayer {
+body {
+    font-family: sans-serif;
+    margin: 50px;
+}
+
+.title {
+    font-style: italic;
+    color: #9e2518;
+}
+
+.bathrooms-table {
+    width: 100%;
+}
+.bathrooms-table td {
+    background-color: #eee;
+    padding: 15px;
+    width: 33.3%;
+}
+.device-cell {
+    text-align: center;
+}
+.text-cell {
+    width: 0;
+    overflow: hidden;
+    display: inline-block;
+    animation-name: slide-out;
+    animation-duration: 1s;
+    animation-fill-mode: forwards;
+}
+
+.occupied, .not-occupied, .displayer, .indicator {
     width: 50px;
     height: 50px;
     background-color: red;
     border-radius: 50%;
     display: inline-block;
     position: relative;
+    text-align: left;
 }
 .displayer {
-    animation-name: pulse;
+    animation-name: appear;
     animation-duration: .6s;
     animation-timing-function: linear;
     animation-fill-mode: forwards;
@@ -16,10 +47,42 @@
 .not-occupied, .not-occupied .displayer {
     background-color: #00ff00;
 }
+.indicator {
+    animation-name: pulse;
+    animation-duration: 2.5s;
+    animation-timing-function: ease-out;
+    animation-iteration-count: infinite;
+    animation-fill-mode: forwards;
+    position: absolute;
+    transform: scale(0);
+    border: 3px solid #880000;
+    background-color: transparent;
+    box-sizing: border-box;
+}
+.not-occupied .indicator {
+    border-color: #00dd00;
+}
 
-@keyframes pulse {
+@keyframes appear {
     to {
         opacity: 0;
         transform: scale(3);
+    }
+}
+
+@keyframes slide-out {
+    to {
+        width: 100px;
+    }
+}
+
+@keyframes pulse {
+    40% {
+        opacity: .1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(1);
     }
 }

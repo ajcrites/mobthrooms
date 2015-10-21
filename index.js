@@ -16,18 +16,8 @@ co(function* () {
     let server = http.createServer(app);
     let port = process.env.PORT || 3000;
 
-    let [io] = yield [
+    let [io, deviceList] = yield [
         socketIo(server),
-        server.listen(port),
-    ];
-
-    console.log("connected", port);
-
-    return io;
-}).catch(err => console.error("Startup error", err))
-.then(io => {
-    // Client socket has connected, so give them an initial devices list
-    io.on("connection", socket => {
         spark.listDevices().then(devices => Promise.all(devices.map(
             // getAttributes does not return a promise
             // Create a list of devices with attributes
@@ -47,26 +37,37 @@ co(function* () {
         .then(occupiableDevices => Promise.all(occupiableDevices.map(
             deviceItem => deviceItem.device.getVariable("ocupado").then(ocupado => (
                 // FIXME real name should come eventually
-                {name: deviceItem.device.name == "WaterClosetWizard" ? "Kitchen-side bathroom" : deviceItem.device.name, ocupado: !!ocupado.result}
+                {name: "WaterClosetWizard" == deviceItem.device.name ? "Kitchen-side bathroom" : deviceItem.device.name, ocupado: !!ocupado.result}
             ))
-        )))
-        // Provide the client with the device name and its occupancy state
-        .then(deviceList => socket.emit("device-list", deviceList))
-        .catch(err => console.error(err));
+        ))),
+        server.listen(port),
+    ];
+
+    console.log("connected", port);
+
+    return {io, deviceList};
+}).catch(err => console.error("Startup error", err))
+.then(startupData => {
+    let {io, deviceList} = startupData;
+    // Client socket has connected, so give them an initial devices list
+    // when the socket is ready to receive the list
+    io.on("connection", socket => {
+        socket.on("device-request", () => socket.emit("device-list", deviceList));
     });
 
     // TODO unnamed device in event stream causes it to go crazy
     // Need to test this with more specific device list or perhaps create
     // individual device event listeners and emit to individual sockets
     spark.getEventStream(false, "WaterClosetWizard", data => {
-        console.log("Event: ", data);
         spark.getDevice(data.coreid)
             .then(device => {
-                console.log("got the device");
+                device.name = "WaterClosetWizard" == device.name ? "Kitchen-side bathroom" : device.name;
                 return Promise.all([device.name, device.getVariable("ocupado")]);
             })
-            .spread((name, isOccupied) => io.emit("occupancy-change",
-                {name: name, ocupado: isOccupied.result}
-            ));
+            .spread((name, isOccupied) => {
+                let deviceUpdate = {name, ocupado: isOccupied.result};
+                deviceList[deviceList.findIndex(search => search.name === name)].ocupado = !!deviceUpdate.ocupado;
+                io.emit("occupancy-change", deviceUpdate);
+            });
     });
 });
