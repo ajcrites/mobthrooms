@@ -49,7 +49,6 @@ class BathroomsTable extends React.Component {
             this.setState({devices: [device]});
         }, 3000);
 
-        /*
         socket.on("device-list", devices => {
             console.log("requesting");
             this.setState({devices: devices});
@@ -59,9 +58,8 @@ class BathroomsTable extends React.Component {
             devices[devices.findIndex(search => search.name === device.name)].ocupado = device.ocupado;
             this.setState({devices: devices});
         });
-        */
         // Initial device list load
-        // socket.emit("device-request");
+        socket.emit("device-request");
     }
     devicesList() {
         return this.state.devices.map(device => <Device name={device.name} ocupado={device.ocupado} />);
