@@ -46,7 +46,8 @@ co(function* () {
         // Get the `ocupado` variable value to determine occupancy state
         .then(occupiableDevices => Promise.all(occupiableDevices.map(
             deviceItem => deviceItem.device.getVariable("ocupado").then(ocupado => (
-                {name: deviceItem.device.name, ocupado: !!ocupado.result}
+                // FIXME real name should come eventually
+                {name: deviceItem.device.name == "WaterClosetWizard" ? "Kitchen-side bathroom" : deviceItem.device.name, ocupado: !!ocupado.result}
             ))
         )))
         // Provide the client with the device name and its occupancy state
@@ -64,7 +65,7 @@ co(function* () {
                 console.log("got the device");
                 return Promise.all([device.name, device.getVariable("ocupado")]);
             })
-            .spread((name, isOccupied) => io.emit("occupancyCheck",
+            .spread((name, isOccupied) => io.emit("occupancy-change",
                 {name: name, ocupado: isOccupied.result}
             ));
     });
