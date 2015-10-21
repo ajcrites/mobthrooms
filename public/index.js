@@ -40,14 +40,8 @@ class BathroomsTable extends React.Component {
         super(props);
 
         this.state = {
-            devices: [{name: "test", ocupado: false}]
+            devices: []
         };
-
-        setInterval(() => {
-            let device = this.state.devices[0];
-            device.ocupado = !device.ocupado
-            this.setState({devices: [device]});
-        }, 3000);
 
         socket.on("device-list", devices => {
             console.log("requesting");
