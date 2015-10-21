@@ -46,7 +46,10 @@ co(function* () {
     console.log("connected", port);
 
     return {io, deviceList};
-}).catch(err => console.error("Startup error", err))
+}).catch(err => {
+    console.error("Startup error", err)
+    process.exit(1);
+})
 .then(startupData => {
     let {io, deviceList} = startupData;
     // Client socket has connected, so give them an initial devices list
