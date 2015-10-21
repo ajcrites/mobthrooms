@@ -22,7 +22,7 @@ class BathroomsTable extends React.Component {
             updatedDevice.ocupado = device.ocupado;
 
             // Device has become available
-            if (!updatedDevice.ocupado && updatedDevice.notify) {
+            if (window.Notification && !updatedDevice.ocupado && updatedDevice.notify) {
                 Notification.requestPermission(permission => {
                     if ("granted" === permission) {
                         new Notification(updatedDevice.name + " is available");
@@ -50,7 +50,7 @@ class BathroomsTable extends React.Component {
             <table className="bathrooms-table">
                 <thead>
                     <tr>
-                        <th>Notify me</th>
+                        <th className="notifier">Notify me</th>
                         <th>Bathroom Name</th>
                         <th colSpan="2">Status</th>
                     </tr>

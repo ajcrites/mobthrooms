@@ -27,7 +27,7 @@ body {
     animation-duration: 1s;
     animation-fill-mode: forwards;
 }
-td.notifier {
+td.notifier, th.notifier {
     width: 1px;
     text-align: center;
     white-space: nowrap;

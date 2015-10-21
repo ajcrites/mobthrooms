@@ -13,3 +13,15 @@ The `master` branch is pushed to Heroku. **Note** that the
 related to ECMAScript6 / strict compatibility.
 
 This should never be committed to the `dev` branch.
+
+The `PARTICLE_ACCESS_TOKEN` environment variable is required
+to use this app with real Particle devices.
+
+## Development
+
+    npm install
+    node4 --harmony_destructuring --use-strict .
+
+If you do not provide a particle access token, the server
+will create two test devices and periodically swap their
+occupancy every 5 and 18 seconds, respectively.
