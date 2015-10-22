@@ -13,38 +13,38 @@ app.use("/", serveStatic(__dirname + "/public"));
 let particleAccessToken = process.env.PARTICLE_ACCESS_TOKEN;
 
 co(function* () {
-    let sparkLoginPromise;
+    let sparkListPromise;
     if (particleAccessToken) {
-        spark.login({accessToken: particleAccessToken});
+        sparkListPromise = co(function* () {
+            spark.login({accessToken: particleAccessToken});
 
-        sparkLoginPromise = spark.listDevices()
-        .then(devices => Promise.all(devices.map(
-            // getAttributes does not return a promise
-            // Create a list of devices with attributes
-            //
-            // TODO if `device.variables` works from `listDevices` this step
-            // can be skipped. May be an issue in Spark.
-            device => Promise.promisify(device.getAttributes, device)()
-            .then(
-                deviceAttributes => ({device: device, attributes: deviceAttributes})
-            )
-        )))
-        // Filter down to only devices that have the `ocupado` variable
-        .then(deviceAttributesList => deviceAttributesList.filter(
-            deviceItem => deviceItem.attributes.variables && undefined !== deviceItem.attributes.variables.ocupado
-        ))
-        // Get the `ocupado` variable value to determine occupancy state
-        .then(occupiableDevices => Promise.all(occupiableDevices.map(
-            deviceItem => deviceItem.device.getVariable("ocupado").then(ocupado => (
-                // FIXME real name should come eventually
-                {name: "WaterClosetWizard" == deviceItem.device.name ? "Kitchen-side bathroom" : deviceItem.device.name, ocupado: !!ocupado.result}
-            ))
-        )));
+            let devices = yield spark.listDevices();
+            let deviceAttributesList = yield devices.map(device =>
+                co(function* () {
+                    let deviceAttributes = yield Promise.promisify(device.getAttributes, device)();
+                    return {device: device, attributes: deviceAttributes};
+                })
+            );
+            let occupiableDevices = yield deviceAttributesList.filter(
+                deviceItem => deviceItem.attributes.variables
+                && undefined !== deviceItem.attributes.variables.ocupado
+            );
+
+            return yield occupiableDevices.map(deviceItem =>
+                co(function* () {
+                    let [name, ocupado] = yield [
+                        deviceItem.device.getVariable("name"),
+                        deviceItem.device.getVariable("ocupado"),
+                    ];
+                    return {name: name.result, ocupado: !!ocupado.result};
+                })
+            );
+        });
     }
     else {
         console.log("No Particle access token provided. Dropping into test mode");
 
-        sparkLoginPromise = [
+        sparkListPromise = [
             {name: "test every 5 seconds", ocupado: false},
             {name: "test every 18 seconds", ocupado: true},
         ];
@@ -55,19 +55,13 @@ co(function* () {
 
     let [io, deviceList] = yield [
         socketIo(server),
-        sparkLoginPromise,
+        sparkListPromise,
         server.listen(port),
     ];
+    console.log(deviceList);
 
     console.log("connected", port);
 
-    return {io, deviceList};
-}).catch(err => {
-    console.error("Startup error", err)
-    process.exit(1);
-})
-.then(startupData => {
-    let {io, deviceList} = startupData;
     // Client socket has connected, so give them an initial devices list
     // when the socket is ready to receive the list
     io.on("connection", socket => {
@@ -78,10 +72,9 @@ co(function* () {
     // Need to test this with more specific device list or perhaps create
     // individual device event listeners and emit to individual sockets
     if (particleAccessToken) {
-        spark.getEventStream(false, "WaterClosetWizard", data => {
+        spark.getEventStream("occupancy-change", false, data => {
             spark.getDevice(data.coreid)
                 .then(device => {
-                    device.name = "WaterClosetWizard" == device.name ? "Kitchen-side bathroom" : device.name;
                     return Promise.all([device.name, device.getVariable("ocupado")]);
                 })
                 .spread((name, isOccupied) => {
@@ -105,4 +98,8 @@ co(function* () {
             io.emit("occupancy-change", {name: "test every 18 seconds", ocupado: ocupado18});
         }, 18000);
     }
+}).catch(err => {
+    console.error("Startup error", err)
+    console.error(err.stack)
+    process.exit(1);
 });
