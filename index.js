@@ -11,45 +11,44 @@ let socketIo = require('socket.io');
 app.use("/", serveStatic(__dirname + "/public"));
 
 let particleAccessToken = process.env.PARTICLE_ACCESS_TOKEN;
+let sparkListPromise;
+
+if (particleAccessToken) {
+    spark.login({accessToken: particleAccessToken});
+    sparkListPromise = co(function* () {
+        let devices = yield spark.listDevices();
+        let deviceAttributesList = yield devices.map(device =>
+            co(function* () {
+                let deviceAttributes = yield Promise.promisify(device.getAttributes, device)();
+                return {device: device, attributes: deviceAttributes};
+            })
+        );
+        let occupiableDevices = yield deviceAttributesList.filter(
+            deviceItem => deviceItem.attributes.variables
+            && undefined !== deviceItem.attributes.variables.ocupado
+        );
+
+        return yield occupiableDevices.map(deviceItem =>
+            co(function* () {
+                let [name, ocupado] = yield [
+                    deviceItem.device.getVariable("name"),
+                    deviceItem.device.getVariable("ocupado"),
+                ];
+                return {name: name.result, ocupado: !!ocupado.result};
+            })
+        );
+    });
+}
+else {
+    console.log("No Particle access token provided. Dropping into test mode");
+
+    sparkListPromise = [
+        {name: "test every 5 seconds", ocupado: false},
+        {name: "test every 18 seconds", ocupado: true},
+    ];
+}
 
 co(function* () {
-    let sparkListPromise;
-    if (particleAccessToken) {
-        sparkListPromise = co(function* () {
-            spark.login({accessToken: particleAccessToken});
-
-            let devices = yield spark.listDevices();
-            let deviceAttributesList = yield devices.map(device =>
-                co(function* () {
-                    let deviceAttributes = yield Promise.promisify(device.getAttributes, device)();
-                    return {device: device, attributes: deviceAttributes};
-                })
-            );
-            let occupiableDevices = yield deviceAttributesList.filter(
-                deviceItem => deviceItem.attributes.variables
-                && undefined !== deviceItem.attributes.variables.ocupado
-            );
-
-            return yield occupiableDevices.map(deviceItem =>
-                co(function* () {
-                    let [name, ocupado] = yield [
-                        deviceItem.device.getVariable("name"),
-                        deviceItem.device.getVariable("ocupado"),
-                    ];
-                    return {name: name.result, ocupado: !!ocupado.result};
-                })
-            );
-        });
-    }
-    else {
-        console.log("No Particle access token provided. Dropping into test mode");
-
-        sparkListPromise = [
-            {name: "test every 5 seconds", ocupado: false},
-            {name: "test every 18 seconds", ocupado: true},
-        ];
-    }
-
     let server = http.createServer(app);
     let port = process.env.PORT || 3000;
 
@@ -58,7 +57,6 @@ co(function* () {
         sparkListPromise,
         server.listen(port),
     ];
-    console.log(deviceList);
 
     console.log("connected", port);
 
@@ -72,17 +70,17 @@ co(function* () {
     // Need to test this with more specific device list or perhaps create
     // individual device event listeners and emit to individual sockets
     if (particleAccessToken) {
-        spark.getEventStream("occupancy-change", false, data => {
-            spark.getDevice(data.coreid)
-                .then(device => {
-                    return Promise.all([device.name, device.getVariable("ocupado")]);
-                })
-                .spread((name, isOccupied) => {
-                    let deviceUpdate = {name, ocupado: isOccupied.result};
-                    deviceList[deviceList.findIndex(search => search.name === name)].ocupado = !!deviceUpdate.ocupado;
-                    io.emit("occupancy-change", deviceUpdate);
-                });
-        });
+        spark.getEventStream("occupancy-change", false, data => co(function* () {
+            let device = yield spark.getDevice(data.coreid);
+            let [name, isOccupied] = yield [
+                device.getVariable("name"),
+                device.getVariable("ocupado"),
+            ];
+            let deviceUpdate = {name: name.result, ocupado: isOccupied.result};
+
+            io.emit("occupancy-change", deviceUpdate);
+            deviceList[deviceList.findIndex(search => search.name === name)].ocupado = !!deviceUpdate.ocupado;
+        }));
     }
     else {
         console.log("setting up two test devices");
