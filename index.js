@@ -8,7 +8,7 @@ http = Promise.promisifyAll(http);
 let co = require("co");
 let socketIo = require('socket.io');
 
-app.use("/", serveStatic(__dirname + "/public"));
+app.use(serveStatic(__dirname + "/public"));
 
 let particleAccessToken = process.env.PARTICLE_ACCESS_TOKEN;
 let sparkListPromise;
@@ -77,15 +77,23 @@ co(function* () {
                 device.getVariable("ocupado"),
             ];
             let deviceUpdate = {name: name.result, ocupado: isOccupied.result};
+            let currentDeviceIndex = deviceList.findIndex(search => search.name === name);
+
+            if (-1 === currentDeviceIndex) {
+                deviceList.push(deviceUpdate);
+            }
+            else {
+                deviceList[currentDeviceIndex].ocupado = !!deviceUpdate.ocupado;
+            }
 
             io.emit("occupancy-change", deviceUpdate);
-            deviceList[deviceList.findIndex(search => search.name === name)].ocupado = !!deviceUpdate.ocupado;
         }));
     }
     else {
         console.log("setting up two test devices");
         let ocupado5 = false;
         let ocupado18 = true;
+        let ocupado30 = false;
 
         setInterval(() => {
             ocupado5 = !ocupado5;
@@ -95,6 +103,10 @@ co(function* () {
             ocupado18 = !ocupado18;
             io.emit("occupancy-change", {name: "test every 18 seconds", ocupado: ocupado18});
         }, 18000);
+        setInterval(() => {
+            ocupado30 = !ocupado30;
+            io.emit("occupancy-change", {name: "test every 30 seconds and new", ocupado: ocupado30});
+        }, 30000);
     }
 }).catch(err => {
     console.error("Startup error", err)

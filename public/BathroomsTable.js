@@ -17,8 +17,19 @@ class BathroomsTable extends React.Component {
             this.setState({devices: devices});
         })
         socket.on("occupancy-change", device => {
+            let updatedDevice;
             let devices = this.state.devices;
-            let updatedDevice = devices[devices.findIndex(search => search.name === device.name)]
+            let currentDeviceIndex = devices.findIndex(search => search.name === device.name);
+
+            if (-1 === currentDeviceIndex) {
+                updatedDevice = device;
+                updatedDevice.notify = false;
+                devices.push(updatedDevice);
+            }
+            else {
+                updatedDevice = devices[currentDeviceIndex];
+            }
+
             updatedDevice.ocupado = device.ocupado;
 
             // Device has become available
