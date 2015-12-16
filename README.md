@@ -4,7 +4,7 @@ This server connects to the Particle/Spark devices mounted
 in the Mobiquity 606 bathrooms and creates a table that is
 updated with their occupancy settings.
 
-The site lives on http://mob-606-bathrooms.herokuapp.com/
+The site lives on http://mobthrooms.herokuapp.com/
 
 ## Deployment
 The `master` branch is pushed to Heroku. **Note** that the
