@@ -20,7 +20,7 @@ to use this app with real Particle devices.
 ## Development
 
     npm install
-    node4 --harmony_destructuring --use-strict .
+    node --harmony_destructuring --use-strict .
 
 If you do not provide a particle access token, the server
 will create two test devices and periodically swap their
