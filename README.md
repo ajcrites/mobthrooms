@@ -1,4 +1,4 @@
-# Mobiquity 606 Bathroom Occupancy Manager Checker
+# Mobiquity Bathroom Occupancy Manager Checker
 
 This server connects to the Particle/Spark devices mounted
 in the Mobiquity 606 bathrooms and creates a table that is
