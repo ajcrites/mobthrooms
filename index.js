@@ -77,6 +77,30 @@ co(function* () {
         socket.on("device-request", () => socket.emit("device-list", deviceList));
     });
 
+    app.use((req, res) => {
+        const url = req.url.match(/^\/status\/([^\/]+)\/?$/);
+
+        if (!url || !url[1]) {
+            res.writeHead(404);
+            return res.end();
+        }
+
+        const requestedDevice = decodeURIComponent(url[1]);
+        const requestedDeviceIndex = deviceList.findIndex(search => search.name == requestedDevice);
+
+        if (-1 === requestedDeviceIndex) {
+            res.writeHead(404);
+            return res.end("Device not found");
+        }
+
+        if (deviceList[requestedDeviceIndex].ocupado) {
+            res.writeHead(409);
+            return res.end("occupied");
+        }
+
+        res.end("open");
+    });
+
     if (particleAccessToken) {
         // When occupancy has changed, we update the device list (for new
         // user connections) and send the updated device to currently
@@ -88,7 +112,7 @@ co(function* () {
                 device.getVariable("ocupado"),
             ];
             let deviceUpdate = {name: name.result, ocupado: isOccupied.result};
-            let currentDeviceIndex = deviceList.findIndex(search => search.name === name);
+            let currentDeviceIndex = deviceList.findIndex(search => search.name === name.result);
 
             // Device with this name was not in the list, so we add it
             if (-1 === currentDeviceIndex) {
