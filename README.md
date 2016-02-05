@@ -1,4 +1,4 @@
-# Mobiquity Bathroom Occupancy Manager Checker
+# Mobiquity Bathroom Occupancy Manager Checker (v1.1.0)
 
 This server connects to the Particle/Spark devices mounted
 in the Mobiquity bathrooms and creates a table that is
