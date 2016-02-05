@@ -7,7 +7,7 @@ let http = require("http");
 http = Promise.promisifyAll(http);
 let co = require("co");
 // FIXME awaiting deployment fix <https://github.com/socketio/socket.io/issues/2155>
-let socketIo = require('./socket.io');
+let socketIo = require('socket.io');
 
 app.use(serveStatic(__dirname + "/public"));
 
