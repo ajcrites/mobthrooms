@@ -1,6 +1,6 @@
 {
   "name": "cnbparticle",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -17,6 +17,6 @@
     "spark": "^1.1.0"
   },
   "engines": {
-    "node": "5.5.0"
+    "node": "5.7.1"
   }
 }
